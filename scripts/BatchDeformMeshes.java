@@ -142,7 +142,7 @@ public class BatchDeformMeshes {
         }
         for(Future<Integer> result: results){
             
-            while(result.isDone()){
+            if(result.isDone()){
                 try{ 
                     result.get();
                 }catch(Exception e){
