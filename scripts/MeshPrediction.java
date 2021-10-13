@@ -5,7 +5,7 @@ import java.io.File;
 public class MeshPrediction{
     SegmentationController controls;
     ImagePlus plus;
-    int threshold = 2;
+    int threshold = 1;
     MeshPrediction( SegmentationController controls, ImagePlus  plus){
         this.controls = controls;
         this.plus = plus;
@@ -34,7 +34,7 @@ public class MeshPrediction{
     public void run( ){
         controls.setOriginalPlus( plus, 2);
         controls.setGamma(1000);
-        controls.setWeight(-0.0125);
+        controls.setWeight(-0.05);
         controls.setBeta(0.1);
         controls.setAlpha(1.0);
         controls.setImageEnergyType(ImageEnergyType.PerpendicularIntensity);
@@ -51,9 +51,8 @@ public class MeshPrediction{
             controls.guessMeshes(threshold);
             
             for(int remesh = 0; remesh<3; remesh++){
-                controls.reMeshConnectionsAllMeshes(0.01, 0.025);
                 deformAllMeshes(controls);
-                
+                controls.reMeshConnectionsAllMeshes(0.004, 0.008);                
             }
             System.out.println("saving meshes");
             
