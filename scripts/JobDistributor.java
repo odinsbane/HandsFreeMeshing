@@ -80,7 +80,7 @@ public class JobDistributor implements Callable<Integer> {
     }
 
     public static void main(String[] args){
-        ExecutorService service = Executors.newFixedThreadPool(8);
+        ExecutorService service = Executors.newFixedThreadPool(4);
         List<Callable<Integer>> jobs = new ArrayList<>();
         try(BufferedReader reader = Files.newBufferedReader(Paths.get(args[0]))) {
             List<JobDistributor> jd = reader.lines().map(line ->
