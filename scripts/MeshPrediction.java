@@ -52,7 +52,7 @@ public class MeshPrediction{
             
             for(int remesh = 0; remesh<3; remesh++){
                 deformAllMeshes(controls);
-                controls.reMeshConnectionsAllMeshes(0.004, 0.008);                
+                controls.reMeshConnectionsAllMeshes(0.01, 0.021);                
             }
             System.out.println("saving meshes");
             
