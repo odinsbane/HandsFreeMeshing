@@ -48,16 +48,22 @@ public class AccumulateZStacks {
         List<ImageStack> toCollate = new ArrayList<>();
         for(int i: selectedChannels){
             ImagePlus pc1 = plus.createImagePlus();
-            ImageStack cstack = new ImageStack(pc1.getWidth(), pc1.getHeight());
+            ImageStack cstack = new ImageStack(plus.getWidth(), plus.getHeight());
             for(int slice = 0; slice < plus.getNSlices(); slice++){
-                ImageProcessor proc = stack.getProcessor( i + slice*2);
+                
+                ImageProcessor proc = stack.getProcessor( i + slice*channels);
+                System.out.println(proc.getWidth() + ", " + proc.getHeight() + " // - // " + stack.getWidth() + ", " + stack.getHeight() + " // - //" + cstack.getWidth() + ", " + cstack.getHeight());
                 cstack.addSlice(proc);
             }
             pc1.setStack(cstack, 1, plus.getNSlices(), 1);
             int nw = (int)(plus.getWidth()*xyfactor);
             int nh = (int)(plus.getHeight()*xyfactor);
             int nz = (int)(plus.getNSlices()*zfactor);
-            next = Scaler.resize(pc1, nw, nh, nz, "bilinear");
+            //if(nw == plus.getWidth() && nh == plus.getHeight() && nz == plus.getNSlices()){
+                next = pc1;
+            //} else{
+            //next = Scaler.resize(pc1, nw, nh, nz, "bilinear");
+            //}
             toCollate.add(next.getStack());
         }
         ImageStack collated = new ImageStack(next.getWidth(), next.getHeight());

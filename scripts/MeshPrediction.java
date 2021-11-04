@@ -50,9 +50,9 @@ public class MeshPrediction{
             controls.toFrame(i);
             controls.guessMeshes(threshold);
             
-            for(int remesh = 0; remesh<3; remesh++){
+            for(int remesh = 0; remesh<1; remesh++){
                 deformAllMeshes(controls);
-                controls.reMeshConnectionsAllMeshes(0.01, 0.021);                
+                //controls.reMeshConnectionsAllMeshes(0.01, 0.021);                
             }
             System.out.println("saving meshes");
             

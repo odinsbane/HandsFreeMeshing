@@ -21,7 +21,21 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 public class AccumulateZMeshes {
+    
+    static Pattern pat = Pattern.compile("\\d+");
+    static int getFrame(String s){
+        Matcher m = pat.matcher(s);
+        String token = "-1";
+        while(m.find()){
+            //get the last one.
+            token = m.group(0);
+        }
+        return Integer.parseInt(token);
+    }
 
     public static boolean linked(String nameA,  String nameB){
         String a = nameA;
@@ -59,7 +73,7 @@ public class AccumulateZMeshes {
         }
 
         System.out.println("working on " + names.size() + " files");
-        names.sort(Comparator.comparingInt(AccumulateZStacks::getFrame));
+        names.sort(Comparator.comparingInt(AccumulateZMeshes::getFrame));
         int frames = 0;
         List<Track> results = new ArrayList<>();
         List<Track> lastFrame = new ArrayList<>();
