@@ -16,7 +16,7 @@ public class MeshPrediction{
         int x = controls.getDeformationSteps();
         new Thread( () -> {
             try{
-                while( x == controls.getDeformationSteps() || controls.getDeformationSteps() < 100 ){
+                while( x == controls.getDeformationSteps() || controls.getDeformationSteps() < 500 ){
                     Thread.sleep(100);
                 } 
             } catch( Exception e ){ return;}
@@ -32,7 +32,7 @@ public class MeshPrediction{
         threshold = t;
     }
     public void run( ){
-        controls.setOriginalPlus( plus, 2);
+        controls.setOriginalPlus( plus, 0);
         controls.setGamma(1000);
         controls.setWeight(-0.05);
         controls.setBeta(0.1);
@@ -52,9 +52,9 @@ public class MeshPrediction{
             
             for(int remesh = 0; remesh<1; remesh++){
                 deformAllMeshes(controls);
-                //controls.reMeshConnectionsAllMeshes(0.01, 0.021);                
+                controls.reMeshConnectionsAllMeshes(0.005, 0.02);                
             }
-            System.out.println("saving meshes");
+            System.out.println("saving meshes after " + (i + 1) + " frames");
             
             controls.saveMeshes(new File(outName));
         }

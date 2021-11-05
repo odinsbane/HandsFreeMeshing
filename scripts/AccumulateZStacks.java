@@ -2,7 +2,8 @@ import ij.IJ;
 import ij.ImageJ;
 import ij.ImagePlus;
 import ij.ImageStack;
-    import ij.process.ImageProcessor;
+import ij.process.ImageProcessor;
+import ij.plugin.Scaler;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -19,7 +20,6 @@ import java.util.concurrent.Future;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-
 public class AccumulateZStacks {
     static final Pattern pat = Pattern.compile("\\d+");
 
@@ -59,11 +59,11 @@ public class AccumulateZStacks {
             int nw = (int)(plus.getWidth()*xyfactor);
             int nh = (int)(plus.getHeight()*xyfactor);
             int nz = (int)(plus.getNSlices()*zfactor);
-            //if(nw == plus.getWidth() && nh == plus.getHeight() && nz == plus.getNSlices()){
+            if(nw == plus.getWidth() && nh == plus.getHeight() && nz == plus.getNSlices()){
                 next = pc1;
-            //} else{
-            //next = Scaler.resize(pc1, nw, nh, nz, "bilinear");
-            //}
+            } else{
+                next = Scaler.resize(pc1, nw, nh, nz, "bilinear");
+            }
             toCollate.add(next.getStack());
         }
         ImageStack collated = new ImageStack(next.getWidth(), next.getHeight());
