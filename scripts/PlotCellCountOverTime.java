@@ -6,7 +6,6 @@ import deformablemesh.SegmentationController;
 import deformablemesh.SegmentationModel;
 import deformablemesh.geometry.BinaryMomentsOfInertia;
 import deformablemesh.geometry.DeformableMesh3D;
-import deformablemesh.gui.render2d.RenderFrame2D;
 import deformablemesh.io.MeshWriter;
 import deformablemesh.track.Track;
 import deformablemesh.util.Vector3DOps;
