@@ -5,15 +5,19 @@ import loci.plugins.BF;
 import loci.plugins.in.ImporterOptions;
 
 import java.io.IOException;
+import java.nio.file.Path;
 
 public class OpenH5AndCreateTiff {
 
+    static void loadData(Path location){
+
+    }
 
     public static void main(String[] args) throws IOException, FormatException {
 
         new ImageJ();
         ImporterOptions options = new ImporterOptions();
-        options.setVirtual(true);
+        options.setVirtual(false);
         options.setOpenAllSeries(true);
         options.setId("dataset.xml");
         long start = System.currentTimeMillis();
