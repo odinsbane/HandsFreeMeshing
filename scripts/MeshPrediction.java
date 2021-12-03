@@ -6,6 +6,7 @@ public class MeshPrediction{
     SegmentationController controls;
     ImagePlus plus;
     int threshold = 1;
+    int dtChannel=2;
     MeshPrediction( SegmentationController controls, ImagePlus  plus){
         this.controls = controls;
         this.plus = plus;
@@ -32,7 +33,8 @@ public class MeshPrediction{
         threshold = t;
     }
     public void run( ){
-        controls.setOriginalPlus( plus, 0);
+        
+        controls.setOriginalPlus( plus, dtChannel);
         controls.setGamma(1000);
         controls.setWeight(-0.05);
         controls.setBeta(0.1);
@@ -64,6 +66,7 @@ public class MeshPrediction{
     
     public static void main(String[] args) throws Exception{
         SegmentationController controls = new SegmentationController( new SegmentationModel() );
+        System.out.println("loading: " + args[0]);
         ImagePlus plus = new ImagePlus( new File(args[0]).getAbsolutePath() );
         MeshPrediction pred = new MeshPrediction(controls, plus);
         
