@@ -2,9 +2,8 @@
 LIB="$SCRIPTS_HOME/lib"
 
 echo "# $LIB running mesh predictions"
-echo "# image_files: $@"
+echo "# image_files: $1"
+echo "# threshold: $2 or 1"
 
-for image_file in $*;
-  do
-    java -cp $LIB/dm3d.jar:$LIB/ij.jar:$LIB/jama.jar $SCRIPTS_HOME/MeshPrediction.java $image_file
-  done
+java -cp $LIB/dm3d.jar:$LIB/ij.jar:$LIB/jama.jar $SCRIPTS_HOME/MeshPrediction.java $1 $2
+

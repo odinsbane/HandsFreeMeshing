@@ -33,14 +33,19 @@ public class MeshPrediction{
         threshold = t;
     }
     public void run( ){
-        
         controls.setOriginalPlus( plus, dtChannel);
+        //the channel needs to be the DT channel!
         controls.setGamma(1000);
         controls.setWeight(-0.05);
         controls.setBeta(0.1);
         controls.setAlpha(1.0);
         controls.setImageEnergyType(ImageEnergyType.PerpendicularIntensity);
-        
+
+        double minLength = 0.75; //um
+        double maxLength = 1.6; //um
+
+        double minNU = minLength/controls.getMeshImageStack().SCALE;
+        double maxNU = maxLength/controls.getMeshImageStack().SCALE;
 
         String outName = controls.getShortImageName().replace(".tif", "") + "-headless.bmf";
         System.out.println( controls.getShortImageName() + " creating " + outName);
@@ -54,7 +59,7 @@ public class MeshPrediction{
             
             for(int remesh = 0; remesh<1; remesh++){
                 deformAllMeshes(controls);
-                controls.reMeshConnectionsAllMeshes(0.005, 0.02);                
+                controls.reMeshConnectionsAllMeshes(minNU, maxNU);
             }
             System.out.println("saving meshes after " + (i + 1) + " frames");
             
