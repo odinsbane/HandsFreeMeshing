@@ -133,8 +133,8 @@ public class PlotCellCountOverTime {
             System.out.println("working on " + pccot.working);
             ImagePlus plus = new ImagePlus(images.get(i).toString());
             List<Track> tracks = MeshWriter.loadMeshes(meshes.get(i).toFile());
-            pccot.plotAngularMomentumVsTime(tracks, new MeshImageStack(plus));
-
+            //pccot.plotAngularMomentumVsTime(tracks, new MeshImageStack(plus));
+            pccot.plotDisplacementsVsTime(tracks, new MeshImageStack(plus));
         }
         pccot.finish();
     }
@@ -174,15 +174,14 @@ public class PlotCellCountOverTime {
 
 
 
-    Graph averageAngularMomentum = new Graph();
-    Graph centerOfMass = new Graph();
+    Graph averageAngularMomentum;
+    Graph centerOfMass;
+    Graph displacementHistogram;
+    Graph cellsPerFrame;
     int processed = 0;
     String working;
 
     public void plotDisplacementsVsTime(List<Track> tracks, MeshImageStack meshImageStack) {
-        averageAngularMomentum = new Graph();
-        //averageAngularMomentum.setYRange(0, 500);
-        averageAngularMomentum.setTitle(working + "angular velocity");
 
         Graph displacementPlot = new Graph();
         displacementPlot.setTitle(working + "Values over Time");
@@ -196,16 +195,15 @@ public class PlotCellCountOverTime {
         if(unit == null){
             unit = "au";
         }
-        displacementPlot.setYLabel("Angular Velocity ( " + unit + "^2 )");
-        displacementPlot.setTitle("Angular Velocity vs Time");
+        displacementPlot.setYLabel("Displacements per Frame ( " + unit + " )");
+        displacementPlot.setTitle("Displacements vs Time");
 
 
         double[] frames = new double[ meshImageStack.getNFrames() ];
-        double[] totalTorque = new double[meshImageStack.getNFrames()];
-        double[] averageTorqueMagnitude = new double[meshImageStack.getNFrames()];
         double[] comDelta = new double[frames.length];
         double[] netDisplacement = new double[frames.length];
-
+        List<double[]> displacements = new ArrayList<>();
+        double[] ncells = new double[frames.length];
         for(int i = 0; i<meshImageStack.getNFrames(); i++){
             frames[i] = i;
 
@@ -217,7 +215,9 @@ public class PlotCellCountOverTime {
             double volume1 = 0.0;
 
             for(Track t: tracks){
-
+                if(t.containsKey(i)){
+                    ncells[i] += 1;
+                }
                 if(t.containsKey(i-1) && t.containsKey(i+1)){
                     DeformableMesh3D start = t.getMesh(i-1);
                     DeformableMesh3D fin = t.getMesh(i+1);
@@ -247,16 +247,7 @@ public class PlotCellCountOverTime {
             center1[1] = center1[1]/volume1;
             center1[2] = center1[2]/volume1;
 
-
-
             comDelta[i] = Vector3DOps.mag(Vector3DOps.difference(center1, center0))*meshImageStack.SCALE;
-
-            double[] moment = new double[3];
-            double mm = 0;
-            double n = 0;
-
-            double[] delta = new double[3];
-            double[][] inertialMatrix = new double[3][3];
 
             for(Track t: tracks){
                 if(t.size()<2){
@@ -279,79 +270,72 @@ public class PlotCellCountOverTime {
                             d2.setPoints(GraphPoints.filledTriangles());
                         }
                     }
+
                     double[] csp = Vector3DOps.difference(cs, center0);
                     double[] cfp = Vector3DOps.difference(cf, center1);
 
                     double[] v = Vector3DOps.difference(cfp, csp);
-
+                    
+                    v[0] = v[0]*meshImageStack.SCALE;
+                    v[1] = v[1]*meshImageStack.SCALE;
+                    v[2] = v[2]*meshImageStack.SCALE;
+                    displacements.add(v);
                     double d =  Vector3DOps.mag( Vector3DOps.difference(cfp, csp) ) * meshImageStack.SCALE;
 
-                    double[] r = Vector3DOps.average(csp, cfp);
 
-                    double v1 = fin.calculateVolume();
-                    double v2 = start.calculateVolume();
-                    double factor = 0.5*(v1+v2)*meshImageStack.SCALE*meshImageStack.SCALE*meshImageStack.SCALE;
-                    for(int k = 0; k<3; k++){
-                        int a = k;
-                        int b = (k+1)%3;
-                        int c = (k+2)%3;
-
-                        inertialMatrix[a][a] += ( r[b]*r[b] + r[c]*r[c] ) * factor;
-                        inertialMatrix[b][a] += -r[b]*r[a]*factor;
-                        inertialMatrix[c][a] += -r[c]*r[a]*factor;
-                    }
-
-                    double[] angMom = Vector3DOps.cross(r, v);
-                    moment[0] += angMom[0]*meshImageStack.SCALE*meshImageStack.SCALE;
-                    moment[1] += angMom[1]*meshImageStack.SCALE*meshImageStack.SCALE;
-                    moment[2] += angMom[2]*meshImageStack.SCALE*meshImageStack.SCALE;
-                    n++;
-
-                    double tq = Vector3DOps.mag(angMom)*meshImageStack.SCALE*meshImageStack.SCALE;
-                    mm += tq;
 
                     d2.addPoint(i + 0.5, d);
-                    delta[0] += v[0];
-                    delta[1] += v[1];
-                    delta[2] += v[2];
                 }
 
             }
 
-            Matrix iM = new Matrix(inertialMatrix);
-            LUDecomposition lu = new LUDecomposition(iM);
-            try {
-                Matrix s = lu.solve(new Matrix(moment, 3));
 
-                delta[0] = delta[0] / n * meshImageStack.SCALE;
-                delta[1] = delta[1] / n * meshImageStack.SCALE;
-                delta[2] = delta[2] / n * meshImageStack.SCALE;
-
-                //netDisplacement[i] = Vector3DOps.mag(Vector3DOps.average(center0, center1))*meshImageStack.SCALE;
-                netDisplacement[i] = Vector3DOps.average(center0, center1)[0] * meshImageStack.SCALE;
-
-                double [] angularVelocity = s.getRowPackedCopy();
-                totalTorque[i] = Vector3DOps.normalize(angularVelocity);
-
-                averageTorqueMagnitude[i] = Vector3DOps.mag(moment);
-            }catch(Exception e){
-                    //singular matrix? skip it.
-            }
+            netDisplacement[i] = Vector3DOps.mag(Vector3DOps.average(center0, center1))*meshImageStack.SCALE;
+            //netDisplacement[i] = Vector3DOps.average(center0, center1)[0] * meshImageStack.SCALE;
+        }
+        if(centerOfMass == null){
+            centerOfMass = new Graph();
         }
         centerOfMass.addData(frames, netDisplacement).setLabel(working);
         displacementPlot.addData(frames, comDelta).setLabel("center of mass displacement");
         displacementPlot.addData(frames, netDisplacement).setLabel("center of mass distance from origin");
-        displacementPlot.show(false, "Displacement per Frame " + working);
+        //displacementPlot.show(false, "Displacement per Frame " + working);
+        DataSet hc = addHistogramCurve(displacements);
+        hc.setLabel(working);
+        if(cellsPerFrame == null){
+            cellsPerFrame = new Graph();
+        }
+        cellsPerFrame.addData(frames, ncells).setLabel(working);
+    }
 
+    public DataSet addHistogramCurve(List<double[]> displacements){
+        double max = 20;
+        double min = 0;
+        int bins = 50;
+        double dx = (max - min)/bins;
 
-        DataSet s1 = averageAngularMomentum.addData(frames, totalTorque);
-        s1.setLabel("Magnitude of average angular momentum: " + processed);
+        double[] counts = new double[bins];
+        double[] xs = new double[bins];
+        for(int i = 0; i<xs.length; i++){
+            xs[i] = (i + 0.5)*dx + min;
+        }
+        double total = 0;
+        for(double[] d: displacements){
+            double m = Vector3DOps.mag(d);
+            int dex = (int)(m/dx);
+            if(dex >= 0 && dex < bins){
+                counts[dex] += 1;
+                total += 1;
+            }
+        }
+        for(int i = 0; i<counts.length; i++){
+            counts[i] = counts[i]/total;
+        }
 
-        DataSet s2 = averageAngularMomentum.addData(frames, averageTorqueMagnitude);
-        s2.setLabel("Magnitude of angular velocity magnitude: " + processed);
-
-        averageAngularMomentum.show(true, "angular momentum");
-        processed++;
+        if(displacementHistogram==null){
+            displacementHistogram = new Graph();
+        }
+        return displacementHistogram.addData(xs, counts);
     }
 
 
@@ -485,7 +469,17 @@ public class PlotCellCountOverTime {
     }
 
     void finish(){
-        averageAngularMomentum.show(false);
-        centerOfMass.show(false);
+        if(averageAngularMomentum != null){
+            averageAngularMomentum.show(false);
+        }
+        if(centerOfMass != null){
+            centerOfMass.show(false);
+        }
+        if(displacementHistogram != null){
+            displacementHistogram.show(false);
+        }
+        if(cellsPerFrame != null){
+            cellsPerFrame.show(false);
+        }
     }
 }

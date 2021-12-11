@@ -1,3 +1,5 @@
+import deformablemesh.DeformableMesh3DTools;
+import deformablemesh.geometry.BinaryMomentsOfInertia;
 import deformablemesh.geometry.Box3D;
 import deformablemesh.geometry.DeformableMesh3D;
 import deformablemesh.io.MeshWriter;
@@ -6,6 +8,7 @@ import deformablemesh.track.Track;
 import deformablemesh.util.MeshAnalysis;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -100,6 +103,7 @@ public class CompareMeshFiles {
             }
 
             if(oneToOne){
+
                 truePositives.add(m.a);
             }
         }
@@ -138,27 +142,35 @@ public class CompareMeshFiles {
     }
 
     public static void main(String[] args) throws IOException {
+        for(String comp: args){
+            List<String> lines = Files.readAllLines(Paths.get(comp));
+            double[] values = { 0, 0, 0, 0};
+            for(int j= 0; j<lines.size(); j++) {
+                String[] tokens = lines.get(j).split("\\s");
+                Path truth = Paths.get(tokens[0]);
+                Path predicted = Paths.get(tokens[1]);
+                List<Track> tt = MeshWriter.loadMeshes(truth.toFile());
+                List<Track> pt = MeshWriter.loadMeshes(predicted.toFile());
 
-        String[] gt = {"Tile_1_dna.bmf", "Tile_2_dna.bmf", "Tile_3_dna.bmf", "Tile_4_dna.bmf", "Tile_5_dna.bmf", "Tile_6_dna.bmf" };
-        String[] pd = {"Tile_1-headless.bmf", "Tile_2-headless.bmf", "Tile_3-headless.bmf", "Tile_4-headless.bmf", "Tile_5-headless.bmf", "Tile_6-headless.bmf" };
-        for(int j= 0; j<gt.length; j++) {
-            Path truth = Paths.get(gt[j]);
-            Path predicted = Paths.get(pd[j]);
-            List<Track> tt = MeshWriter.loadMeshes(truth.toFile());
-            List<Track> pt = MeshWriter.loadMeshes(predicted.toFile());
+                int last = tt.stream().mapToInt(Track::getLastFrame).max().orElse(-1);
+                int first = tt.stream().mapToInt(Track::getFirstFrame).min().orElse(-1);
 
-            int last = tt.stream().mapToInt(Track::getLastFrame).max().orElse(-1);
-            int first = tt.stream().mapToInt(Track::getFirstFrame).min().orElse(-1);
-
-            CompareMeshFiles cmf = new CompareMeshFiles();
-            for (int i = first; i <= last; i++) {
-                final int frame = i;
-                List<DeformableMesh3D> from = tt.stream().filter(t -> t.containsKey(frame)).map(t -> t.getMesh(frame)).collect(Collectors.toList());
-                List<DeformableMesh3D> to = pt.stream().filter(t -> t.containsKey(frame)).map(t -> t.getMesh(frame)).collect(Collectors.toList());
-                cmf.evaluatePrediction(from, to);
+                CompareMeshFiles cmf = new CompareMeshFiles();
+                for (int i = first; i <= last; i++) {
+                    final int frame = i;
+                    List<DeformableMesh3D> from = tt.stream().filter(t -> t.containsKey(frame)).map(t -> t.getMesh(frame)).collect(Collectors.toList());
+                    List<DeformableMesh3D> to = pt.stream().filter(t -> t.containsKey(frame)).map(t -> t.getMesh(frame)).collect(Collectors.toList());
+                    cmf.evaluatePrediction(from, to);
+                }
+                values[0] += cmf.total;
+                values[1] += cmf.truePositive;
+                values[2] += cmf.falsePositive;
+                values[3] += cmf.falseNegative;
+                //System.out.println(cmf.total + "\t" + cmf.truePositive + "\t" + cmf.falsePositive + "\t" + cmf.falseNegative);
             }
-            System.out.println(cmf.total + "\t" + cmf.truePositive + "\t" + cmf.falsePositive + "\t" + cmf.falseNegative);
+            System.out.println(values[0] + "\t" + values[1] + "\t" + values[2] + "\t" + values[3] + "\t");
         }
+
 
 
     }
