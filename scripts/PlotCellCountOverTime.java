@@ -275,7 +275,7 @@ public class PlotCellCountOverTime {
                     double[] cfp = Vector3DOps.difference(cf, center1);
 
                     double[] v = Vector3DOps.difference(cfp, csp);
-                    
+
                     v[0] = v[0]*meshImageStack.SCALE;
                     v[1] = v[1]*meshImageStack.SCALE;
                     v[2] = v[2]*meshImageStack.SCALE;
