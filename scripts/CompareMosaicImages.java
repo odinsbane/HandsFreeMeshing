@@ -172,51 +172,72 @@ public class CompareMosaicImages {
         }
         if(DEBUG) showErrors();
     }
-    public static void plotSummary(List<Map<Integer, List<double[]>>> output){
+    public static void plotSummary(Map<String, List<Map<Integer, List<double[]>>>> comparisons){
         Graph plot = new Graph();
-        double[] averages = new double[4];
-        int n = 0;
-        GraphPoints[] good = {GraphPoints.hollowCircles(), GraphPoints.hollowTriangles(), GraphPoints.hollowSquares()};
-        int stackNo = 0;
-        for(Map<Integer, List<double[]>> movieValues: output){
-            int cells = movieValues.values().stream().mapToInt(List::size).sum();
-            double[] ji = new double[cells];
-            double[] cm = new double[cells];
-            int dex = 0;
-            for(Integer frame: movieValues.keySet()){
-                List<double[]> cellValues = movieValues.get(frame);
-                for(double[] cv: cellValues){
-                    //index++, aLabel, bLabel, a.size, b.size, overlap, dx, dy, dz
-                    double j = cv[5] /(cv[4] + cv[3] - cv[5]);
-                    double d = Math.sqrt(cv[6]*cv[6] + cv[7]*cv[7] + cv[8]*cv[8]);
-                    ji[dex] = j;
-                    cm[dex] = d;
-                    dex++;
-                    averages[0] += j;
-                    averages[1] += d;
-                    averages[2] += j*j;
-                    averages[3] += d*d;
-                }
+        Color[] colors = {Color.RED, Color.BLUE, Color.YELLOW};
+        Color[] light = {
+                new Color(255, 100, 100),
+                new Color(100, 100, 255),
+                new Color(255, 255, 100)
+        };
+        int colorIndex = 0;
+        List<double[]> allAverages = new ArrayList<>();
+        List<String> names = new ArrayList<>(comparisons.keySet());
+        for(String comparisonName: names){
+            List<Map<Integer, List<double[]>>> output = comparisons.get(comparisonName);
+            double[] averages = new double[4];
+            int n = 0;
+            GraphPoints[] good = {GraphPoints.hollowCircles(), GraphPoints.hollowTriangles(), GraphPoints.hollowSquares()};
+            int stackNo = 0;
+            for(Map<Integer, List<double[]>> movieValues: output){
+                int cells = movieValues.values().stream().mapToInt(List::size).sum();
+                double[] ji = new double[cells];
+                double[] cm = new double[cells];
+                int dex = 0;
+                for(Integer frame: movieValues.keySet()){
+                    List<double[]> cellValues = movieValues.get(frame);
+                    for(double[] cv: cellValues){
+                        //index++, aLabel, bLabel, a.size, b.size, overlap, dx, dy, dz
+                        double j = cv[5] /(cv[4] + cv[3] - cv[5]);
+                        double d = Math.sqrt(cv[6]*cv[6] + cv[7]*cv[7] + cv[8]*cv[8]);
+                        ji[dex] = j;
+                        cm[dex] = d;
+                        dex++;
+                        averages[0] += j;
+                        averages[1] += d;
+                        averages[2] += j*j;
+                        averages[3] += d*d;
+                    }
 
+                }
+                DataSet set = plot.addData(cm, ji);
+                set.setColor(light[colorIndex]);
+                set.setLine(null);
+                set.setPoints(good[stackNo]);
+                stackNo = ++stackNo%good.length;
+                n += cells;
             }
-            DataSet set = plot.addData(cm, ji);
-            set.setColor(Color.LIGHT_GRAY);
-            set.setLine(null);
-            set.setPoints(good[stackNo]);
-            stackNo = ++stackNo%good.length;
-            n += cells;
+            averages[0] = averages[0]/n;
+            averages[1] = averages[1]/n;
+            averages[2] = Math.sqrt(averages[2]/n - averages[0]*averages[0]);
+            averages[3] = Math.sqrt(averages[3]/n - averages[1]*averages[1]);
+            allAverages.add(averages);
+            colorIndex = (colorIndex + 1)%colors.length;
         }
-        averages[0] = averages[0]/n;
-        averages[1] = averages[1]/n;
-        averages[2] = Math.sqrt(averages[2]/n - averages[0]*averages[0]);
-        averages[3] = Math.sqrt(averages[3]/n - averages[1]*averages[1]);
-        DataSet set = plot.addData(new double[] {averages[1]}, new double[] {averages[0]});
-        set.addXYErrorBars(new double[]{averages[3]}, new double[]{averages[2]});
-        set.setLine(null);
-        set.setPoints(GraphPoints.outlinedCircles());
-        set.setPointSize(12);
-        set.setPointWeight(3);
-        set.setColor(Color.RED);
+        colorIndex = 0;
+        for(int i = 0; i<allAverages.size(); i++){
+            double[] averages = allAverages.get(i);
+            String name = names.get(i).replace(".txt", "");
+            DataSet set = plot.addData(new double[] {averages[1]}, new double[] {averages[0]});
+            set.addXYErrorBars(new double[]{averages[3]}, new double[]{averages[2]});
+            set.setLine(null);
+            set.setPoints(GraphPoints.outlinedCircles());
+            set.setPointSize(12);
+            set.setPointWeight(3);
+            set.setColor(colors[colorIndex]);
+            set.setLabel(name);
+            colorIndex = (colorIndex + 1)%colors.length;
+        }
         plot.setContentSize(340, 240);
         plot.setXRange(0, 2.5);
         plot.setYRange(0, 1);
@@ -302,10 +323,14 @@ public class CompareMosaicImages {
         this.guess = plus;
     }
     public static void main(String[] args) throws IOException {
+        Map<String, List<Map<Integer, List<double[]>>>> datasets = new HashMap<>();
 
+        //Each name in the arguments is file name with a list of truth/prediction mosaic pairs.
         for(String comparison: args){
+            //Each line contains a pair of images truth/prediction that will be evaluated.
             List<String> pairs = Files.readAllLines(Paths.get(comparison));
-            List<Map<Integer, List<double[]>>> allValues = new ArrayList<>(pairs.size());
+            List<Map<Integer, List<double[]>>> comparisonSet = new ArrayList<>(pairs.size());
+
             for(String pair: pairs){
                 String[] tokens = pair.split("\\s");
 
@@ -313,10 +338,12 @@ public class CompareMosaicImages {
                 ImagePlus guess = new ImagePlus(Paths.get(tokens[1]).toAbsolutePath().toString());
                 CompareMosaicImages cmi = new CompareMosaicImages(truth, guess);
                 cmi.prepareMapping();
-                allValues.add(cmi.cellValues);
+                //cellValues is a Frame, Data mapping. Data is one double[] per cell.
+                comparisonSet.add(cmi.cellValues);
             }
-            plotSummary(allValues);
+            datasets.put(comparison, comparisonSet);
         }
-
+        plotSummary(datasets);
     }
+
 }
