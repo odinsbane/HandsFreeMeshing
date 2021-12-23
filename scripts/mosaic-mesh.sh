@@ -1,4 +1,4 @@
 #!/bin/bash
-LIB=~/data/working/scripts/lib
+LIB=$SCRIPTS_HOME/lib
 
-java -cp $LIB/dm3d.jar:$LIB/ij.jar:$LIB/jama.jar:$LIB/lg.jar ~/data/working/scripts/MosaicMesh.java $1 $2
+java -cp $LIB/dm3d.jar:$LIB/ij.jar:$LIB/jama.jar:$LIB/lg.jar $SCRIPTS_HOME/MosaicMesh.java $1 $2
