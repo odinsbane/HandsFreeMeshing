@@ -172,7 +172,7 @@ public class Label2DTrainingData {
         labelledStack = new ImageStack(plus.getWidth(), plus.getHeight());
         ImageStack input = plus.getStack();
         List<Future<ImageProcessor>> futures = new ArrayList<>();
-        ExecutorService service = Executors.newFixedThreadPool(4);
+        ExecutorService service = Executors.newFixedThreadPool(16);
         for(int i = 1; i<=input.size(); i++){
             final ImageProcessor proc = input.getProcessor(i);
             futures.add( service.submit(()->process(proc)) );
