@@ -988,7 +988,7 @@ public class TwoDSegmentationSnake {
         }
 
     }
-    
+
     public ImageProcessor getLabelledProcessor() {
         int w = cc2d.getWidth();
         int h = cc2d.getHeight();
