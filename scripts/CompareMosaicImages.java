@@ -4,16 +4,14 @@ import ij.ImagePlus;
 import ij.process.ImageProcessor;
 import ij.process.ColorProcessor;
 import ij.ImageStack;
-import ij.IJ;
 import lightgraph.DataSet;
 import lightgraph.Graph;
 import lightgraph.GraphPoints;
 
 import java.awt.Color;
-import java.awt.EventQueue;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -125,11 +123,9 @@ public class CompareMosaicImages {
                         return pr + 1;
                     });
                 }
-                //debugStack.addSlice(proc);
             }
-            //ImagePlus debug = new ImagePlus("debug.tif", debugStack);
-            //IJ.save( debug, "debug.tif");
             Map<Integer, RegionMap> best = new HashMap<>();
+
             for( Map.Entry<Mapping, Integer> mapped: mapCounter.entrySet()){
                 RegionMap rm = new RegionMap(mapped.getKey(), mapped.getValue());
                 if(best.containsKey(rm.a)){
@@ -149,13 +145,13 @@ public class CompareMosaicImages {
                 if(aLabel == 0) continue;
                 RegionMap rm = best.get(aLabel);
                 int bLabel, overlap;
-                if( rm != null ){
-                    bLabel = rm.b;
-                    overlap = rm.size;
-                } else{
-                    bLabel = 0;
-                    overlap = 0;
+                if(rm == null){
+                    //failed to map.
+                    continue;
                 }
+                bLabel = rm.b;
+                overlap = rm.size;
+
                 Region a = tPix.get(aLabel);
                 Region b = gPix.get(bLabel);
                 double dx = (b.x/b.size - a.x/a.size)*mis.SCALE;
@@ -172,6 +168,55 @@ public class CompareMosaicImages {
         }
         if(DEBUG) showErrors();
     }
+
+
+    static public List<double[]> histogram(List<double[]> table){
+        int bins = 50;
+        double min = 0;
+        double max = 1.0;
+        double dx = (max - min)/bins;
+        double[] x = new double[bins];
+        double[] y = new double[bins];
+        for(int i = 0; i<bins; i++){
+            x[i] = min + (0.5 + i)*dx;
+        }
+        double total = 0;
+        for(double[] values: table){
+
+            for(double d: values){
+                int dex = (int)((d - min)/dx);
+                if(dex >= 0 && dex < bins){
+                    y[dex] += 1;
+                    total++;
+                }
+            }
+
+        }
+        double f = 1/total;
+        for(int i = 0; i<y.length; i++){
+            y[i] = y[i]*f;
+        }
+        return Arrays.asList(x, y);
+    }
+
+    static void plotHistograms(Map<String, List<double[]>> data){
+        Graph g = new Graph();
+        String title = "";
+        for(String name: data.keySet()){
+            List<double[]> curve = data.get(name);
+            DataSet set = g.addData(curve.get(0), curve.get(1));
+            set.setPoints(null);
+            set.setLineWidth(2);
+            title += name + "; ";
+        }
+        g.setContentSize(170, 120);
+        g.setXRange(0, 1);
+        g.setYRange(0, 1);
+        g.setXTicCount(2);
+        g.setYTicCount(2);
+        g.show(true, title);
+    }
+
     public static void plotSummary(Map<String, List<Map<Integer, List<double[]>>>> comparisons){
         Graph plot = new Graph();
         Color[] colors = {Color.RED, Color.BLUE, Color.YELLOW};
@@ -183,12 +228,14 @@ public class CompareMosaicImages {
         int colorIndex = 0;
         List<double[]> allAverages = new ArrayList<>();
         List<String> names = new ArrayList<>(comparisons.keySet());
+        Map<String, List<double[]>> jiHistograms = new HashMap<>();
         for(String comparisonName: names){
             List<Map<Integer, List<double[]>>> output = comparisons.get(comparisonName);
             double[] averages = new double[4];
             int n = 0;
             GraphPoints[] good = {GraphPoints.hollowCircles(), GraphPoints.hollowTriangles(), GraphPoints.hollowSquares()};
             int stackNo = 0;
+            List<double[]> jiTable = new ArrayList<>();
             for(Map<Integer, List<double[]>> movieValues: output){
                 int cells = movieValues.values().stream().mapToInt(List::size).sum();
                 double[] ji = new double[cells];
@@ -210,6 +257,9 @@ public class CompareMosaicImages {
                     }
 
                 }
+                jiTable.add(ji);
+
+
                 DataSet set = plot.addData(cm, ji);
                 set.setColor(light[colorIndex]);
                 set.setLine(null);
@@ -223,6 +273,7 @@ public class CompareMosaicImages {
             averages[3] = Math.sqrt(averages[3]/n - averages[1]*averages[1]);
             allAverages.add(averages);
             colorIndex = (colorIndex + 1)%colors.length;
+            jiHistograms.put(comparisonName, histogram(jiTable));
         }
         colorIndex = 0;
         for(int i = 0; i<allAverages.size(); i++){
@@ -246,10 +297,10 @@ public class CompareMosaicImages {
         plot.setXLabel("\u0394CM (\u03BCm)");
         plot.setYLabel("JI");
         plot.show(false, "JI vs CM Displacement");
+        plotHistograms(jiHistograms);
 
     }
     void showErrors(){
-        new ImageJ();
         ImagePlus plus = truth.createImagePlus();
         int slices = truth.getNSlices();
         int frames = truth.getNFrames();
@@ -261,7 +312,7 @@ public class CompareMosaicImages {
 
     void accumulateErrors(int frame, Map<Integer, RegionMap> bestMapped){
         //conditions.
-        //Background labelled. Label Labelled as Background. Labelled incorrectly. Labelled Correctly.
+        //Background labelled. Label pixels as Background. Labelled incorrectly. Labelled Correctly.
         //false positive label.
         if(debugStack==null){
             debugStack = new ImageStack(truth.getWidth(), truth.getHeight());
@@ -323,6 +374,9 @@ public class CompareMosaicImages {
         this.guess = plus;
     }
     public static void main(String[] args) throws IOException {
+        if(DEBUG){
+            new ImageJ();
+        }
         Map<String, List<Map<Integer, List<double[]>>>> datasets = new HashMap<>();
 
         //Each name in the arguments is file name with a list of truth/prediction mosaic pairs.
@@ -333,9 +387,17 @@ public class CompareMosaicImages {
 
             for(String pair: pairs){
                 String[] tokens = pair.split("\\s");
+                Path tp = Paths.get(tokens[0]);
+                Path gp = Paths.get(tokens[1]);
+                if(!Files.exists(tp)){
+                    throw new IOException(tokens[0] + " not found! Aborting.");
+                }
+                if(!Files.exists(gp)){
+                    throw new IOException(tokens[1] + " not found! Aborting.");
+                }
 
-                ImagePlus truth = new ImagePlus(Paths.get(tokens[0]).toAbsolutePath().toString());
-                ImagePlus guess = new ImagePlus(Paths.get(tokens[1]).toAbsolutePath().toString());
+                ImagePlus truth = new ImagePlus(tp.toAbsolutePath().toString());
+                ImagePlus guess = new ImagePlus(gp.toAbsolutePath().toString());
                 CompareMosaicImages cmi = new CompareMosaicImages(truth, guess);
                 cmi.prepareMapping();
                 //cellValues is a Frame, Data mapping. Data is one double[] per cell.
