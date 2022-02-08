@@ -106,7 +106,6 @@ public class Label2DTrainingData {
 
         int w = proc.getWidth();
         int h = proc.getHeight();
-        System.out.println(membraneLabel + ", " + vertexLabel + ", " + centerLabel);
 
         TwoDSegmentationSnake tdss = new TwoDSegmentationSnake(proc);
         ImageProcessor bytes = new ShortProcessor(w, h);
@@ -172,10 +171,14 @@ public class Label2DTrainingData {
         labelledStack = new ImageStack(plus.getWidth(), plus.getHeight());
         ImageStack input = plus.getStack();
         List<Future<ImageProcessor>> futures = new ArrayList<>();
-        ExecutorService service = Executors.newFixedThreadPool(16);
+        ExecutorService service = Executors.newFixedThreadPool(8);
         for(int i = 1; i<=input.size(); i++){
+            final int frame = i;
             final ImageProcessor proc = input.getProcessor(i);
-            futures.add( service.submit(()->process(proc)) );
+            futures.add( service.submit(()->{
+                System.out.println("frame: " + frame);
+                return process(proc);
+            }) );
         }
         for(int i = 1; i<=input.size(); i++){
             labelledStack.addSlice(input.getSliceLabel(i), futures.get(i-1).get());
