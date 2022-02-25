@@ -39,6 +39,8 @@ public class PlotCellCountOverTime {
     Map<String, List<Track>> trackData =  new HashMap<>();
     int firstFrame = Integer.MAX_VALUE;
     int lastFrame = 0;
+    double dtHours = 24.0/133;
+
     public void addData(String name, List<Track> tracks){
         while(trackData.keySet().contains(name)){
             name = name + "I";
@@ -110,7 +112,15 @@ public class PlotCellCountOverTime {
         }
         return Integer.parseInt(token);
     }
+    static String getShortLabel(String full){
 
+        Pattern p = Pattern.compile("Tile_\\d");
+        Matcher m = p.matcher(full);
+        if(m.find()){
+            return m.group(0);
+        }
+        return "Tile_X";
+    }
     public static void main(String[] args) throws IOException {
         Path imageFolder = Paths.get(args[0]);
         Path meshFolder = Paths.get(args[1]);
@@ -190,12 +200,12 @@ public class PlotCellCountOverTime {
         displacementPlot.setXTicCount(6);
         //displacementPlot.setYRange(0, 10);
         displacementPlot.setYTicCount(6);
-        displacementPlot.setXLabel("Frame No.");
+        displacementPlot.setXLabel("Hours");
         String unit = meshImageStack.getUnits();
         if(unit == null){
             unit = "au";
         }
-        displacementPlot.setYLabel("Displacements per Frame ( " + unit + " )");
+        displacementPlot.setYLabel("Displacements per Frame ( " + unit + "/s )");
         displacementPlot.setTitle("Displacements vs Time");
 
 
@@ -205,7 +215,7 @@ public class PlotCellCountOverTime {
         List<double[]> displacements = new ArrayList<>();
         double[] ncells = new double[frames.length];
         for(int i = 0; i<meshImageStack.getNFrames(); i++){
-            frames[i] = i;
+            frames[i] = i*dtHours;
 
             //center at two different times.
             double[] center0 = new double[3];
@@ -300,16 +310,24 @@ public class PlotCellCountOverTime {
         displacementPlot.addData(frames, comDelta).setLabel("center of mass displacement");
         displacementPlot.addData(frames, netDisplacement).setLabel("center of mass distance from origin");
         //displacementPlot.show(false, "Displacement per Frame " + working);
+        String shortLabel = getShortLabel(working);
         DataSet hc = addHistogramCurve(displacements);
-        hc.setLabel(working);
+        hc.setLabel(shortLabel);
+        hc.setPoints(null);
+        hc.setLineWidth(2);
+
         if(cellsPerFrame == null){
             cellsPerFrame = new Graph();
         }
-        cellsPerFrame.addData(frames, ncells).setLabel(working);
+        DataSet cpf = cellsPerFrame.addData(frames, ncells);
+        cpf.setLabel(shortLabel);
+        cpf.setPoints(null);
+        cpf.setLineWidth(2);
     }
 
     public DataSet addHistogramCurve(List<double[]> displacements){
-        double max = 20;
+        double dtSeconds = dtHours*60*60;
+        double max = 20/dtSeconds;
         double min = 0;
         int bins = 50;
         double dx = (max - min)/bins;
@@ -321,7 +339,7 @@ public class PlotCellCountOverTime {
         }
         double total = 0;
         for(double[] d: displacements){
-            double m = Vector3DOps.mag(d);
+            double m = Vector3DOps.mag(d)/dtSeconds;
             int dex = (int)(m/dx);
             if(dex >= 0 && dex < bins){
                 counts[dex] += 1;
@@ -329,7 +347,7 @@ public class PlotCellCountOverTime {
             }
         }
         for(int i = 0; i<counts.length; i++){
-            counts[i] = counts[i]/total;
+            counts[i] = counts[i]/total/dx;
         }
 
         if(displacementHistogram==null){
@@ -476,9 +494,15 @@ public class PlotCellCountOverTime {
             centerOfMass.show(false);
         }
         if(displacementHistogram != null){
+            displacementHistogram.setContentSize(340, 240);
             displacementHistogram.show(false);
         }
         if(cellsPerFrame != null){
+            cellsPerFrame.setContentSize(340, 240);
+            cellsPerFrame.setYRange(0, 40);
+            cellsPerFrame.setXRange(0, 24);
+            cellsPerFrame.setXTicCount(5);
+            cellsPerFrame.setYTicCount(5);
             cellsPerFrame.show(false);
         }
     }

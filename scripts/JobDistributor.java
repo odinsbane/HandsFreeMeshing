@@ -4,6 +4,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.stream.Collectors;
@@ -17,6 +19,8 @@ public class JobDistributor implements Callable<Integer> {
     Thread err, stdout;
     final List<String> command;
     final String name;
+    long startTime;
+    long endTime;
     JobDistributor(String name, List<String> commands){
         this.name = name;
         this.command = new ArrayList<>(commands);
@@ -35,6 +39,8 @@ public class JobDistributor implements Callable<Integer> {
                 StandardOpenOption.CREATE,
                 StandardOpenOption.APPEND
         )) {
+            startTime = System.nanoTime();
+            Instant start = Instant.now();
             Process proc = build.start();
             err = new Thread(
                     new Drain( proc.getErrorStream(),errStream )
@@ -58,12 +64,15 @@ public class JobDistributor implements Callable<Integer> {
                 }
             }
             exitCode = proc.exitValue();
+            endTime = System.nanoTime();
+            Instant end = Instant.now();
+            Duration d = Duration.between(start, end);
             switch(exitCode){
                 case 0:
-                    System.out.println("success!");
+                    System.out.println("success! " + d);
                     break;
                 default:
-                    System.err.println("job: " + name + " exited with a non-zero exit code");
+                    System.err.println("job: " + name + " exited with a non-zero exit code after: " + d);
                     break;
             }
 
@@ -79,7 +88,15 @@ public class JobDistributor implements Callable<Integer> {
 
     }
 
-    public static void main(String[] args){
+    public static void main(String[] args) throws IOException {
+        if(args.length != 2){
+            System.out.println("provide two arguments. Job File and Number of threads.");
+        }
+        Path logFolder = Paths.get("log");
+        Files.createDirectories(logFolder);
+
+
+
         ExecutorService service = Executors.newFixedThreadPool(1);
         List<Callable<Integer>> jobs = new ArrayList<>();
         try(BufferedReader reader = Files.newBufferedReader(Paths.get(args[0]))) {

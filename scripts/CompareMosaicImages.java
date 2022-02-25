@@ -192,43 +192,56 @@ public class CompareMosaicImages {
             }
 
         }
-        double f = 1/total;
+        double f = 1/total/dx;
         for(int i = 0; i<y.length; i++){
             y[i] = y[i]*f;
         }
-        return Arrays.asList(x, y);
+
+        double[] blockyx = new double[ x.length*2];
+        double[] blockyy = new double[ y.length*2];
+
+        for(int i = 0; i<x.length; i++){
+            blockyx[2*i] = x[i]-dx/2;
+            blockyx[2*i+1] = x[i]+dx/2;
+            blockyy[2*i] = y[i];
+            blockyy[2*i+1] = y[i];
+        }
+
+        return Arrays.asList(blockyx, blockyy);
     }
 
     static void plotHistograms(Map<String, List<double[]>> data){
         Graph g = new Graph();
         String title = "";
+        int colorIndex = 0;
         for(String name: data.keySet()){
             List<double[]> curve = data.get(name);
             DataSet set = g.addData(curve.get(0), curve.get(1));
             set.setPoints(null);
             set.setLineWidth(2);
             title += name + "; ";
+            colorIndex = ( colorIndex + 1 ) % colors.length;
         }
         g.setContentSize(170, 120);
         g.setXRange(0, 1);
-        g.setYRange(0, 1);
+        g.setYRange(0, 20);
         g.setXTicCount(2);
         g.setYTicCount(2);
         g.show(true, title);
     }
-
+    static Color[] colors = {Color.RED, Color.BLUE, Color.YELLOW};
+    static Color[] light = {
+            new Color(255, 100, 100),
+            new Color(100, 100, 255),
+            new Color(255, 255, 100)
+    };
     public static void plotSummary(Map<String, List<Map<Integer, List<double[]>>>> comparisons){
         Graph plot = new Graph();
-        Color[] colors = {Color.RED, Color.BLUE, Color.YELLOW};
-        Color[] light = {
-                new Color(255, 100, 100),
-                new Color(100, 100, 255),
-                new Color(255, 255, 100)
-        };
+
         int colorIndex = 0;
         List<double[]> allAverages = new ArrayList<>();
         List<String> names = new ArrayList<>(comparisons.keySet());
-        Map<String, List<double[]>> jiHistograms = new HashMap<>();
+        Map<String, List<double[]>> jiHistograms = new LinkedHashMap<>();
         for(String comparisonName: names){
             List<Map<Integer, List<double[]>>> output = comparisons.get(comparisonName);
             double[] averages = new double[4];
@@ -275,8 +288,9 @@ public class CompareMosaicImages {
             colorIndex = (colorIndex + 1)%colors.length;
             jiHistograms.put(comparisonName, histogram(jiTable));
         }
-        colorIndex = 0;
+
         for(int i = 0; i<allAverages.size(); i++){
+            colorIndex = i%colors.length;
             double[] averages = allAverages.get(i);
             String name = names.get(i).replace(".txt", "");
             DataSet set = plot.addData(new double[] {averages[1]}, new double[] {averages[0]});
@@ -373,11 +387,12 @@ public class CompareMosaicImages {
         this.truth = truth;
         this.guess = plus;
     }
+
     public static void main(String[] args) throws IOException {
         if(DEBUG){
             new ImageJ();
         }
-        Map<String, List<Map<Integer, List<double[]>>>> datasets = new HashMap<>();
+        Map<String, List<Map<Integer, List<double[]>>>> datasets = new LinkedHashMap<>();
 
         //Each name in the arguments is file name with a list of truth/prediction mosaic pairs.
         for(String comparison: args){
