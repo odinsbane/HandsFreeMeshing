@@ -1,3 +1,4 @@
+import loci.common.DebugTools;
 import loci.formats.FormatException;
 import loci.plugins.BF;
 import loci.plugins.in.ImporterOptions;
@@ -18,6 +19,7 @@ import java.io.IOException;
 public class PrepareHyperStackForPrediction {
 
     public static void main(String[] args) throws IOException, FormatException {
+        DebugTools.setRootLevel("OFF");
         Path src = Paths.get(args[0]).toAbsolutePath();
         Path outFolder = src.getParent().resolve("two-channel-byte");
 
@@ -35,8 +37,9 @@ public class PrepareHyperStackForPrediction {
         int slices = plus.getNSlices();
 
         ImageStack in = plus.getImageStack();
-        ImageStack out = new ImageStack(in.getWidth(), in.getHeight());
+        Files.createDirectories(outFolder);
         for(int i = 0; i<frames; i++){
+            ImageStack out = new ImageStack(in.getWidth(), in.getHeight());
             for(int z = 0; z < slices; z++){
                 for(int c: selectedChannels){
                     int N = z*channels + i * channels * slices + c;
@@ -46,16 +49,18 @@ public class PrepareHyperStackForPrediction {
 
                 }
             }
+            Path outpath = outFolder.resolve( src.getFileName().toString().replace(".tif", String.format("-2b-%04d.tif", i) ) );
+
+            ImagePlus dup = plus.createImagePlus();
+            dup.setStack(out, selectedChannels.length, slices, 1);
+            dup.setLut(LUT.createLutFromColor(Color.WHITE));
+            IJ.save(dup, outpath.toString());
+
         }
 
-        Files.createDirectories(outFolder);
 
-        Path outpath = outFolder.resolve( src.getFileName().toString().replace(".tif", "-2b.tif") );
 
-        ImagePlus dup = plus.createImagePlus();
-        dup.setStack(out, selectedChannels.length, slices, frames);
-        dup.setLut(LUT.createLutFromColor(Color.WHITE));
-        IJ.save(dup, outpath.toString());
+
 
     }
 }
