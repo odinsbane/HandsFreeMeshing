@@ -66,7 +66,9 @@ public class AccumulateZMeshes {
 
 
             for (Path path : Files.newDirectoryStream(folder)) {
-                names.add(path.toString());
+                if(path.toString().endsWith(".bmf")){
+                    names.add(path.toString());
+                }
             }
             Paths.get("");
         } else{
