@@ -9,6 +9,7 @@ import ij.ImageStack;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -61,7 +62,12 @@ public class AccumulateZMeshes {
         List<String> names = new ArrayList<>( );
         Path out;
         if( args.length > 0){
-            names.addAll( Arrays.asList(args) );
+            Path folder = Paths.get(args[0]);
+
+
+            for (Path path : Files.newDirectoryStream(folder)) {
+                names.add(path.toString());
+            }
             Paths.get("");
         } else{
             String dir = IJ.getDirectory("Select folder containing images");
@@ -78,32 +84,42 @@ public class AccumulateZMeshes {
         int frames = 0;
         List<Track> results = new ArrayList<>();
         List<Track> lastFrame = new ArrayList<>();
+        List<Track> working = new ArrayList<>();
+
         for(int j = 0; j<names.size(); j++) {
             final int frame = j;
+            working.clear();
             List<Track> input = MeshReader.loadMeshes(
                     new File(names.get(j))
             ).stream().filter(
                     loadedTrack -> loadedTrack.containsKey(0)
             ).collect(Collectors.toList());
 
-            List<Track> appended = input.stream().map(
-                    track -> {
-                        Track target = lastFrame.stream().filter(
-                                oldTrack -> linked(track.getName(), oldTrack.getName())
-                        ).findFirst().orElseGet(() ->{
-                            Track fresh = new Track(track.getName(), track.getColor());
-                            results.add(fresh);
-                            return fresh;
-                        } );
-                        target.addMesh(frame, track.getMesh(0));
-
-                        return target;
+            for(Track track: input){
+                Track modified = null;
+                for( Track can: lastFrame){
+                    if( can.getName().equals(track.getName()) ){
+                        modified = can;
+                        modified.addMesh(frame, track.getMesh(0));
+                        break;
                     }
-            ).collect(Collectors.toList());
+                }
+
+                if(modified == null){
+                    DeformableMesh3D m = track.getMesh(0);
+                    track.remove(m);
+                    track.addMesh(frame, m);
+                    results.add(track); //starts it.
+                    working.add(track); //stores it for next frame.
+
+                } else{
+                    working.add(modified);
+                }
+
+            }
 
             lastFrame.clear();
-            lastFrame.addAll(input);
-
+            lastFrame.addAll(working);
         }
         System.out.println(results.size());
         if(results.size() > 0)
