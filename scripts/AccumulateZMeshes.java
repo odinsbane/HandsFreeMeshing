@@ -1,4 +1,5 @@
 import deformablemesh.geometry.DeformableMesh3D;
+import deformablemesh.io.MeshReader;
 import deformablemesh.io.MeshWriter;
 import deformablemesh.track.Track;
 import ij.IJ;
@@ -79,7 +80,7 @@ public class AccumulateZMeshes {
         List<Track> lastFrame = new ArrayList<>();
         for(int j = 0; j<names.size(); j++) {
             final int frame = j;
-            List<Track> input = MeshWriter.loadMeshes(
+            List<Track> input = MeshReader.loadMeshes(
                     new File(names.get(j))
             ).stream().filter(
                     loadedTrack -> loadedTrack.containsKey(0)
