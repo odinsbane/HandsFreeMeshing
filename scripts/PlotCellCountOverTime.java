@@ -6,6 +6,7 @@ import deformablemesh.SegmentationController;
 import deformablemesh.SegmentationModel;
 import deformablemesh.geometry.BinaryMomentsOfInertia;
 import deformablemesh.geometry.DeformableMesh3D;
+import deformablemesh.io.MeshReader;
 import deformablemesh.io.MeshWriter;
 import deformablemesh.track.Track;
 import deformablemesh.util.Vector3DOps;
@@ -142,9 +143,10 @@ public class PlotCellCountOverTime {
             pccot.working = "img: " + images.get(i) + " mesh: " + meshes.get(i);
             System.out.println("working on " + pccot.working);
             ImagePlus plus = new ImagePlus(images.get(i).toString());
-            List<Track> tracks = MeshWriter.loadMeshes(meshes.get(i).toFile());
-            //pccot.plotAngularMomentumVsTime(tracks, new MeshImageStack(plus));
+            List<Track> tracks = MeshReader.loadMeshes(meshes.get(i).toFile());
+            pccot.plotAngularMomentumVsTime(tracks, new MeshImageStack(plus));
             pccot.plotDisplacementsVsTime(tracks, new MeshImageStack(plus));
+            break;
         }
         pccot.finish();
     }
@@ -371,7 +373,7 @@ public class PlotCellCountOverTime {
         double[] frames = new double[ N ];
         double[] totalTorque = new double[ N ];
         double[] averageTorqueMagnitude = new double[ N ];
-
+        List<double[]> displacements = new ArrayList<>();
         for(int i = 0; i<meshImageStack.getNFrames(); i++){
             int frame = i;
             frames[i] = i;

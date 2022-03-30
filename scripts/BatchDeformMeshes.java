@@ -3,6 +3,7 @@ import deformablemesh.MeshImageStack;
 import deformablemesh.externalenergies.PerpendicularIntensityEnergy;
 import deformablemesh.geometry.ConnectionRemesher;
 import deformablemesh.geometry.DeformableMesh3D;
+import deformablemesh.io.MeshReader;
 import deformablemesh.io.MeshWriter;
 import deformablemesh.track.MeshTracker;
 import deformablemesh.track.Track;
@@ -10,6 +11,9 @@ import deformablemesh.util.*;
 import ij.IJ;
 import ij.ImageJ;
 import ij.ImagePlus;
+import loci.formats.FormatException;
+import loci.plugins.BF;
+import loci.plugins.in.ImporterOptions;
 
 import java.io.File;
 import java.io.IOException;
@@ -24,7 +28,10 @@ public class BatchDeformMeshes {
     Path cwd;
     List<Track> tracks;
     int removed = 0;
-    
+    double minLength = 0.7; //um
+    double maxLength = 1.5; //um
+
+    double minNU, maxNU;
     
     
 
@@ -33,6 +40,7 @@ public class BatchDeformMeshes {
     }
     public void setDistanceTransform(ImagePlus plus){
         this.prediction = plus;
+
         
     }
     public void setCwd(Path p){
@@ -47,6 +55,8 @@ public class BatchDeformMeshes {
 
         dt = new MeshImageStack(prediction, i, 2);
         mask = new MeshImageStack(prediction, i, 1);
+        minNU = minLength/dt.SCALE;
+        maxNU = maxLength/dt.SCALE;
 
         System.out.println("starting: " + i);
         long start = System.currentTimeMillis();
@@ -78,7 +88,7 @@ public class BatchDeformMeshes {
                 }
                 mesh.clearEnergies();
                 ConnectionRemesher rem = new ConnectionRemesher();
-                rem.setMinAndMaxLengths(0.01, 0.025);
+                rem.setMinAndMaxLengths(minNU, maxNU);
                 try {
                     mesh = rem.remesh(mesh);
                 } catch(Exception e){
@@ -178,6 +188,18 @@ public class BatchDeformMeshes {
         System.out.println("done refining");
     }
 
+    public static ImagePlus getVirtualStack(Path location) throws IOException, FormatException {
+        String id = location.toAbsolutePath().toString();
+        ImporterOptions options = new ImporterOptions();
+        options.setVirtual(true);
+        options.setOpenAllSeries(true);
+        options.setId(id);
+        long start = System.currentTimeMillis();
+        ImagePlus[] pluses = BF.openImagePlus(options);
+
+        return pluses[0];
+    }
+
     public static void main(String[] args) throws Exception{
         //new ImageJ();
         ImagePlus distance;
@@ -186,21 +208,21 @@ public class BatchDeformMeshes {
         BatchDeformMeshes x = new BatchDeformMeshes();
 
         if(args.length>0){
-            distance = new ImagePlus(Paths.get(args[0]).toAbsolutePath().toString());
+            distance =getVirtualStack(Paths.get(args[0]));
             cwd = Paths.get(args[0]).toAbsolutePath().getParent();
             File meshes = Paths.get(args[1]).toAbsolutePath().toFile();
-            tracks = MeshWriter.loadMeshes(meshes);
+            tracks = MeshReader.loadMeshes(meshes);
 
         } else{
             Path p = Paths.get(IJ.getFilePath("select predction for auto-refining meshes")).toAbsolutePath();
             cwd = p.getParent();
-            distance = new ImagePlus(p.toString());
+            distance = getVirtualStack(p);
 
             File meshfile = Paths.get(
-                    IJ.getFilePath("select distance transform predction to be auto-meshed")
+                    IJ.getFilePath("Meshes to be deformed")
             ).toAbsolutePath().toFile();
 
-            tracks = MeshWriter.loadMeshes(meshfile);
+            tracks = MeshReader.loadMeshes(meshfile);
 
         }
         x.setCwd(cwd);

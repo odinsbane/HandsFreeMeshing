@@ -13,19 +13,7 @@ public class MeshPrediction{
     }
     static void deformAllMeshes(SegmentationController controls){
         
-        int[] a = { 0 };
-        int x = controls.getDeformationSteps();
-        new Thread( () -> {
-            try{
-                while( x == controls.getDeformationSteps() || controls.getDeformationSteps() < 500 ){
-                    Thread.sleep(100);
-                } 
-            } catch( Exception e ){ return;}
-            finally{ controls.stopRunning();}
-        }).start();
-        System.out.println("deforming meshes");
-        controls.deformAllMeshes();
-        System.out.println("finished deforming");
+        controls.deformAllMeshes(100);
         
     }
     
