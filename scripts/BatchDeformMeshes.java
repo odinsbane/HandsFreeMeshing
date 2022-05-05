@@ -110,7 +110,9 @@ public class BatchDeformMeshes {
                 mesh.ALPHA = 1;
                 mesh.BETA = 0.1;
             }
-            if(mesh.calculateVolume() < 0){
+            double v = mesh.calculateVolume();
+
+            if(v < 0 || Double.isNaN(v)){
                 //remove the original.
                 t.remove(t.getMesh(i));
                 removed++;

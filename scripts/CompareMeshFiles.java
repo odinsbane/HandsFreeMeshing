@@ -2,6 +2,7 @@ import deformablemesh.DeformableMesh3DTools;
 import deformablemesh.geometry.BinaryMomentsOfInertia;
 import deformablemesh.geometry.Box3D;
 import deformablemesh.geometry.DeformableMesh3D;
+import deformablemesh.io.MeshReader;
 import deformablemesh.io.MeshWriter;
 import deformablemesh.track.FrameToFrameDisplacement;
 import deformablemesh.track.Track;
@@ -149,8 +150,8 @@ public class CompareMeshFiles {
                 String[] tokens = lines.get(j).split("\\s");
                 Path truth = Paths.get(tokens[0]);
                 Path predicted = Paths.get(tokens[1]);
-                List<Track> tt = MeshWriter.loadMeshes(truth.toFile());
-                List<Track> pt = MeshWriter.loadMeshes(predicted.toFile());
+                List<Track> tt = MeshReader.loadMeshes(truth.toFile());
+                List<Track> pt = MeshReader.loadMeshes(predicted.toFile());
 
                 int last = tt.stream().mapToInt(Track::getLastFrame).max().orElse(-1);
                 int first = tt.stream().mapToInt(Track::getFirstFrame).min().orElse(-1);

@@ -1,7 +1,12 @@
 import deformablemesh.*;
 import deformablemesh.externalenergies.*;
+import deformablemesh.geometry.DeformableMesh3D;
+import deformablemesh.track.Track;
 import ij.*;
 import java.io.File;
+import java.util.List;
+import java.util.stream.Collectors;
+
 public class MeshPrediction{
     SegmentationController controls;
     ImagePlus plus;
@@ -12,9 +17,19 @@ public class MeshPrediction{
         this.plus = plus;
     }
     static void deformAllMeshes(SegmentationController controls){
-        
+        int f = controls.getCurrentFrame();
         controls.deformAllMeshes(100);
-        
+        List<Track> tracks = controls.getAllTracks().stream().filter(
+                t->t.containsKey(f)
+           ).collect(Collectors.toList());
+        for(Track track: tracks){
+            DeformableMesh3D mesh = track.getMesh(f);
+            double v = mesh.calculateVolume();
+            if(v <= 0 || Double.isNaN(v)){
+                controls.clearMeshFromTrack(track, f);
+            }
+        }
+        controls.clearHistory();
     }
     
     public void setThreshold(int t){

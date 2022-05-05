@@ -111,6 +111,7 @@ public class AccumulateZStacks {
                     System.out.println("processing :: " + imageStack);
                     ImagePlus original = new ImagePlus(Paths.get(imageStack).toAbsolutePath().toString());
                     original.setOpenAsHyperStack(true);
+
                     return scaleXY(original, XY_SCALE, Z_SCALE);
                 })
         ).collect(Collectors.toList());

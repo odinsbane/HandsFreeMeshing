@@ -1,5 +1,6 @@
 import deformablemesh.DeformableMesh3DTools;
 import deformablemesh.MeshImageStack;
+import deformablemesh.io.MeshReader;
 import deformablemesh.io.MeshWriter;
 import deformablemesh.track.Track;
 import ij.IJ;
@@ -31,7 +32,7 @@ public class MosaicMesh {
         }
         String mosaicName = meshFile.getFileName().toString().replace(".bmf", "-mosaic.tif");;
         ImagePlus plus = new ImagePlus(image.toString());
-        List<Track> tracks = MeshWriter.loadMeshes(meshFile.toFile());
+        List<Track> tracks = MeshReader.loadMeshes(meshFile.toFile());
         for(int i = 0; i<tracks.size(); i++){
             tracks.get(i).setColor( new Color( i + 1 ) );
         }
