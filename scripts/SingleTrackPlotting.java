@@ -6,7 +6,11 @@ import deformablemesh.io.MeshReader;
 import deformablemesh.track.Track;
 import deformablemesh.util.Vector3DOps;
 import ij.ImagePlus;
+import ij.plugin.FileInfoVirtualStack;
 import lightgraph.Graph;
+import loci.formats.FormatException;
+import loci.plugins.BF;
+import loci.plugins.in.ImporterOptions;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -163,7 +167,7 @@ public class SingleTrackPlotting {
         curvatures.show(false, "Curvature vs STD [Curvature]");
     }
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException, FormatException {
         Path folder = Paths.get(args[0]);
         List<Path> paths = Files.list(folder).filter(
                 p -> p.getFileName().toString().endsWith(".bmf")
@@ -173,7 +177,8 @@ public class SingleTrackPlotting {
             Path imgPath = folder.resolve(p.getFileName().toString().replace(".bmf", ".tif"));
             if(Files.exists(imgPath)){
                 System.out.println(p + " // " + imgPath);
-                ImagePlus plus = new ImagePlus(imgPath.toAbsolutePath().toString());
+                ImagePlus plus = FileInfoVirtualStack.openVirtual(imgPath.toAbsolutePath().toString());
+
                 List<Track> meshes = MeshReader.loadMeshes(p.toFile());
                 stp.setImage(plus);
                 String shortName = imgPath.getFileName().toString().replace(".tif", "");
