@@ -8,9 +8,6 @@ import deformablemesh.util.Vector3DOps;
 import ij.ImagePlus;
 import ij.plugin.FileInfoVirtualStack;
 import lightgraph.Graph;
-import loci.formats.FormatException;
-import loci.plugins.BF;
-import loci.plugins.in.ImporterOptions;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -167,7 +164,7 @@ public class SingleTrackPlotting {
         curvatures.show(false, "Curvature vs STD [Curvature]");
     }
 
-    public static void main(String[] args) throws IOException, FormatException {
+    public static void main(String[] args) throws IOException {
         Path folder = Paths.get(args[0]);
         List<Path> paths = Files.list(folder).filter(
                 p -> p.getFileName().toString().endsWith(".bmf")
