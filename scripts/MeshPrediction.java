@@ -35,6 +35,29 @@ public class MeshPrediction{
     public void setThreshold(int t){
         threshold = t;
     }
+    
+    public void organoids4Binned(){
+        //first channel - membrane marker
+        controls.setOriginalPlus( plus, 0 ); 
+        double minLength = 4.0/3; //um
+        double maxLength = 4.0; //um
+
+        double minNU = minLength/controls.getMeshImageStack().SCALE;
+        double maxNU = maxLength/controls.getMeshImageStack().SCALE;
+        
+        String outName = controls.getShortImageName().replace(".tif", "") + "-headless.bmf";
+        System.out.println( controls.getShortImageName() + " creating " + outName);
+        
+        for(int i = 0; i < controls.getNFrames(); i++){
+            controls.toFrame(i);
+            controls.guessMeshes(threshold);
+            
+            controls.reMeshConnectionsAllMeshes(minNU, maxNU);
+            
+        }
+        controls.saveMeshes(new File(outName));
+
+    }
     public void run( ){
         controls.setOriginalPlus( plus, dtChannel);
         //the channel needs to be the DT channel!
@@ -81,7 +104,8 @@ public class MeshPrediction{
         if( args.length > 1 ){
             pred.setThreshold(Integer.parseInt(args[1]));
         }
-        controls.submit( pred::run );        
+        controls.submit( pred::organoids4Binned );        
+        controls.shutdown();
         
     }
     

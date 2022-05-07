@@ -67,18 +67,31 @@ public class AccumulteTimeChannelStacks {
 
                 for(ChannelTimeStack cstack: channels){
                     ImagePlus cplus = new ImagePlus(cstack.getAbsolutePath());
+                    System.out.println( cstack.tile_no + "\t" + key  + "\t" + cplus.getNSlices() );
                     if(out == null){
                         out = new ImageStack(cplus.getWidth(), cplus.getHeight());
                         plus = cplus;
                         nChannels = channels.size();
                     }
-
+                    if(cplus.getNSlices() != plus.getNSlices() ){
+                        System.out.println(
+                            "tile: " + cstack.tile_no + 
+                            "channels do not contain the same number of slices:" + cplus.getNSlices() + " vs " + plus.getNSlices() +
+                            "frame" + key
+                            );
+                    }
                     stacks.add(cplus.getImageStack());
                 }
 
                 for(int z = 0; z < plus.getNSlices(); z++){
                     for(int i = 0; i<channels.size(); i++){
-                        out.addSlice(stacks.get(i).getProcessor(z + 1));
+                        ImageStack stack = stacks.get(i);
+                        if(stack.size() < z + 1 ){
+                            out.addSlice( stack.getProcessor( stack.size() ) );
+                        } else{
+                            out.addSlice(stacks.get(i).getProcessor(z + 1));
+                        }
+                        
                     }
                 }
             }
