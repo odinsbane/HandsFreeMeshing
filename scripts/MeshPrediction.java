@@ -41,20 +41,36 @@ public class MeshPrediction{
         controls.setOriginalPlus( plus, 0 ); 
         double minLength = 4.0/3; //um
         double maxLength = 4.0; //um
-
-        double minNU = minLength/controls.getMeshImageStack().SCALE;
-        double maxNU = maxLength/controls.getMeshImageStack().SCALE;
+        double scale = controls.getMeshImageStack().SCALE;
+        double minNU = minLength/scale;
+        double maxNU = maxLength/scale;
         
         String outName = controls.getShortImageName().replace(".tif", "") + "-headless.bmf";
         System.out.println( controls.getShortImageName() + " creating " + outName);
-        
+        double minVolume = 1000 / Math.pow(scale, 3); 
         for(int i = 0; i < controls.getNFrames(); i++){
             controls.toFrame(i);
             controls.guessMeshes(threshold);
             
             controls.reMeshConnectionsAllMeshes(minNU, maxNU);
-            
         }
+        List<Track> tracks = controls.getAllTracks();
+        for( Track track: tracks){
+            for( Integer key: track.getTrack().keySet() ){
+                DeformableMesh3D mesh = track.getMesh(key);
+                if(mesh.calculateVolume() < minVolume){
+                    controls.clearMeshFromTrack(track, key, mesh);
+                }
+            }
+            controls.clearHistory();
+        }
+
+        controls.clearHistory();
+        for(int i = 0; i < controls.getNFrames(); i++){
+            controls.toFrame(i);
+            controls.autotrackAvailableTracks();
+        }
+        controls.clearHistory();
         controls.saveMeshes(new File(outName));
 
     }
