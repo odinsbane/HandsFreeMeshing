@@ -153,6 +153,7 @@ public class SingleTrackPlotting {
         working = new MeshImageStack(plus);
     }
     public void finish(){
+
         cmX.show(false, "X center of mass");
         cmY.show(false, "Y center of mass");
         cmZ.show(false, "Z center of mass");
@@ -177,10 +178,12 @@ public class SingleTrackPlotting {
                 ImagePlus plus = FileInfoVirtualStack.openVirtual(imgPath.toAbsolutePath().toString());
 
                 List<Track> meshes = MeshReader.loadMeshes(p.toFile());
+                meshes.removeIf(t -> t.size() < 100);
                 stp.setImage(plus);
                 String shortName = imgPath.getFileName().toString().replace(".tif", "");
+                int count = 0;
                 for(Track t: meshes){
-                    stp.addTrack(t, shortName);
+                    stp.addTrack(t, shortName + "_track-" + count++);
                 }
             }
         }
