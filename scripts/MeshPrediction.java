@@ -120,7 +120,8 @@ public class MeshPrediction{
         if( args.length > 1 ){
             pred.setThreshold(Integer.parseInt(args[1]));
         }
-        controls.submit( pred::organoids4Binned );        
+        controls.submit( pred::run );
+        //controls.submit( pred::organoids4Binned );
         controls.shutdown();
         
     }
