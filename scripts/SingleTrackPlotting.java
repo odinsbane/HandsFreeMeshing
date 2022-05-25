@@ -233,7 +233,7 @@ public class SingleTrackPlotting {
                 ImagePlus plus = FileInfoVirtualStack.openVirtual(imgPath.toAbsolutePath().toString());
 
                 List<Track> meshes = MeshReader.loadMeshes(p.toFile());
-                meshes.removeIf(t -> t.size() < 2);
+                meshes.removeIf(t -> t.size() < 100);
                 stp.setImage(plus);
                 String shortName = imgPath.getFileName().toString().replace(".tif", "");
                 int count = 0;
