@@ -7,14 +7,20 @@ import deformablemesh.track.Track;
 import deformablemesh.util.Vector3DOps;
 import ij.ImagePlus;
 import ij.plugin.FileInfoVirtualStack;
+import lightgraph.DataSet;
 import lightgraph.Graph;
+import lightgraph.GraphPoints;
 
+import java.awt.Color;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Scanner;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class SingleTrackPlotting {
@@ -23,29 +29,72 @@ public class SingleTrackPlotting {
      */
 
     Graph cmX, cmY, cmZ;
-    Graph volume;
+    Graph volume, volumeChanges;
     List<Graph> meanIntensity = new ArrayList<>();
     Graph displacements;
     Graph curvatures;
     MeshImageStack working;
     int channels;
-    Path log = Paths.get("data-log.txt");
     SingleTrackPlotting(){
         cmX = new Graph();
         cmY = new Graph();
         cmZ = new Graph();
         volume = new Graph();
+        volumeChanges = new Graph();
         displacements = new Graph();
         curvatures = new Graph();
     }
-
+    int[][] cutoffs = {
+            {0, 14}, //healthy no dye
+            {15, 25}, // healthy dye
+            {26, 40}, // cancer no dye
+            {41, 52}  // cancer dye
+    };
+    /*
+    #0-11 healthy no nuclear dye
+#12-23 cancer no nuclear dye
+#24 - 36 healthy with nuclear dye
+#37 - 49 cancer with nuclear dye
+     */
+    int[][] cutoffs2 = {
+                        {0, 11},
+                        {24, 36},
+                        {12, 23},
+                        {37, 49}
+                    };
+    Color[] colors = {
+            Color.MAGENTA,
+            Color.RED,
+            new Color(0, 60, 0),
+            Color.ORANGE
+    };
     public void addTrack(Track t, String title){
+        Pattern p = Pattern.compile("_(\\d+)");
+        Matcher m = p.matcher(title);
+        if(!m.find()){
+            System.out.println("cannot find tile number! " + title);
+        }
+        int tile_number = Integer.parseInt(m.group(1));
+        Color tileColor = null;
+        int condition = -1;
+        for(int i = 0; i<cutoffs.length; i++){
+            int[] range = cutoffs2[i];
+            if(tile_number >= range[0] && tile_number <= range[1]){
+                tileColor = colors[i];
+                condition = i;
+                break;
+            }
+        }
+        if(condition < 0){
+            tileColor = Color.BLACK;
+        }
         List<Integer> tp = new ArrayList<>(t.getTrack().keySet());
         double[] time = new double[tp.size()];
         double[] x = new double[tp.size()];
         double[] z = new double[tp.size()];
         double[] y = new double[tp.size()];
         double[] v = new double[tp.size()];
+        double[] deltav = new double[tp.size()];
         double[] kappa = new double[tp.size()];
         double[] kappa2 = new double[tp.size()];
         List<double[]> aveI = new ArrayList<>();
@@ -54,7 +103,6 @@ public class SingleTrackPlotting {
         }
         double dim = working.SCALE;
         double[] origin = new double[3];
-        double v0 = 1;
 
         List<double[]> deltas = new ArrayList<>();
         double lastVolume = -1;
@@ -62,7 +110,7 @@ public class SingleTrackPlotting {
         for(int i = 0; i<tp.size(); i++){
             Integer key = tp.get(i);
             working.setFrame(key);
-            time[i] = key;
+            time[i] = key + tile_number/1000.0;
             DeformableMesh3D mesh = t.getMesh(key);
 
             double vi = mesh.calculateVolume()*dim*dim*dim;
@@ -71,10 +119,10 @@ public class SingleTrackPlotting {
                 origin[0] = cm[0];
                 origin[1] = cm[1];
                 origin[2] = cm[2];
-                v0 = vi;
             } else{
                 double r = Vector3DOps.mag(Vector3DOps.difference(cm, lastCm));
                 double dv = (vi - lastVolume);
+                deltav[i] = dv / lastVolume;
                 deltas.add(new double[]{r, dv});
             }
 
@@ -131,7 +179,13 @@ public class SingleTrackPlotting {
         cmX.addData(time, x).setLabel(title);
         cmY.addData(time, y).setLabel(title);
         cmZ.addData(time, z).setLabel(title);
-        volume.addData(time, v).setLabel(title);
+        DataSet set = volume.addData(time, v);
+        set.setColor(tileColor);
+        set = volumeChanges.addData(time, deltav);
+        set.setColor(tileColor);
+        set.setLine(null);
+        set.setPoints(GraphPoints.crossPlus());
+        set.setPointSize(12);
         for(int c = 0; c<channels; c++){
             meanIntensity.get(c).addData(time, aveI.get(c)).setLabel(title);
         }
@@ -154,15 +208,16 @@ public class SingleTrackPlotting {
     }
     public void finish(){
 
-        cmX.show(false, "X center of mass");
-        cmY.show(false, "Y center of mass");
-        cmZ.show(false, "Z center of mass");
+        //cmX.show(false, "X center of mass");
+        //cmY.show(false, "Y center of mass");
+        //cmZ.show(false, "Z center of mass");
         volume.show(false, "Volume");
+        volumeChanges.show(false, "Relative Volume Changes");
         for(int c = 0; c<meanIntensity.size(); c++){
             meanIntensity.get(c).show(false, "intensity: " + c);
         }
-        displacements.show(false, "Displacements and Volume");
-        curvatures.show(false, "Curvature vs STD [Curvature]");
+        //displacements.show(false, "Displacements and Volume");
+        //curvatures.show(false, "Curvature vs STD [Curvature]");
     }
 
     public static void main(String[] args) throws IOException {
@@ -178,7 +233,7 @@ public class SingleTrackPlotting {
                 ImagePlus plus = FileInfoVirtualStack.openVirtual(imgPath.toAbsolutePath().toString());
 
                 List<Track> meshes = MeshReader.loadMeshes(p.toFile());
-                meshes.removeIf(t -> t.size() < 100);
+                meshes.removeIf(t -> t.size() < 2);
                 stp.setImage(plus);
                 String shortName = imgPath.getFileName().toString().replace(".tif", "");
                 int count = 0;
@@ -188,7 +243,6 @@ public class SingleTrackPlotting {
             }
         }
         stp.finish();
-
     }
 
 }

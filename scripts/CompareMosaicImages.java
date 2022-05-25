@@ -21,6 +21,9 @@ public class CompareMosaicImages {
     ImagePlus guess;
     ImageStack debugStack;
     Map<Integer, List<double[]>> cellValues = new HashMap<>();
+    double totalVolume = 0.0;
+    double totalCells = 0.0;
+
     final static boolean DEBUG=false;
 
     static class Mapping{
@@ -124,6 +127,16 @@ public class CompareMosaicImages {
                     });
                 }
             }
+            double f = mis.pixel_dimensions[0]*mis.pixel_dimensions[1]*mis.pixel_dimensions[2];
+            for(Map.Entry<Integer, Region> entry: tPix.entrySet()){
+                if (entry.getKey() == 0) {
+                    //System.out.println("they're there");
+                    continue;
+                }
+                totalVolume += ( entry.getValue().size * f );
+                totalCells += 1;
+            }
+
             Map<Integer, RegionMap> best = new HashMap<>();
 
             for( Map.Entry<Mapping, Integer> mapped: mapCounter.entrySet()){
@@ -242,10 +255,13 @@ public class CompareMosaicImages {
         List<double[]> allAverages = new ArrayList<>();
         List<String> names = new ArrayList<>(comparisons.keySet());
         Map<String, List<double[]>> jiHistograms = new LinkedHashMap<>();
+
         for(String comparisonName: names){
             List<Map<Integer, List<double[]>>> output = comparisons.get(comparisonName);
             double[] averages = new double[4];
             int n = 0;
+            double over70 = 0.0;
+
             GraphPoints[] good = {GraphPoints.hollowCircles(), GraphPoints.hollowTriangles(), GraphPoints.hollowSquares()};
             int stackNo = 0;
             List<double[]> jiTable = new ArrayList<>();
@@ -259,6 +275,9 @@ public class CompareMosaicImages {
                     for(double[] cv: cellValues){
                         //index++, aLabel, bLabel, a.size, b.size, overlap, dx, dy, dz
                         double j = cv[5] /(cv[4] + cv[3] - cv[5]);
+                        if(j > 0.7){
+                            over70 += 1;
+                        }
                         double d = Math.sqrt(cv[6]*cv[6] + cv[7]*cv[7] + cv[8]*cv[8]);
                         ji[dex] = j;
                         cm[dex] = d;
@@ -280,6 +299,8 @@ public class CompareMosaicImages {
                 stackNo = ++stackNo%good.length;
                 n += cells;
             }
+            System.out.println( over70 + "\t" + n + "\t" + (over70/n));
+
             averages[0] = averages[0]/n;
             averages[1] = averages[1]/n;
             averages[2] = Math.sqrt(averages[2]/n - averages[0]*averages[0]);
@@ -312,7 +333,6 @@ public class CompareMosaicImages {
         plot.setYLabel("JI");
         plot.show(false, "JI vs CM Displacement");
         plotHistograms(jiHistograms);
-
     }
     void showErrors(){
         ImagePlus plus = truth.createImagePlus();
@@ -395,6 +415,8 @@ public class CompareMosaicImages {
         Map<String, List<Map<Integer, List<double[]>>>> datasets = new LinkedHashMap<>();
 
         //Each name in the arguments is file name with a list of truth/prediction mosaic pairs.
+        double totalVolume = 0.0;
+        double totalCells = 0.0;
         for(String comparison: args){
             //Each line contains a pair of images truth/prediction that will be evaluated.
             List<String> pairs = Files.readAllLines(Paths.get(comparison));
@@ -417,9 +439,17 @@ public class CompareMosaicImages {
                 cmi.prepareMapping();
                 //cellValues is a Frame, Data mapping. Data is one double[] per cell.
                 comparisonSet.add(cmi.cellValues);
+                totalVolume += cmi.totalVolume;
+                totalCells += cmi.totalCells;
+                System.out.println( "\t" + (cmi.totalVolume/cmi.totalCells) + " average volume");
             }
             datasets.put(comparison, comparisonSet);
         }
+
+        System.out.println( "#average volume\tradius");
+        double vbar = totalVolume/totalCells;
+        double r = Math.cbrt(3*vbar/Math.PI/4);
+        System.out.println( vbar + "\t" + r);
         plotSummary(datasets);
     }
 

@@ -157,9 +157,9 @@ public class Label2DTrainingData {
 
         if(max>0){
             if(categoricalDistanceTranseform){
-                tdss.distanceTransformCategorical(max, levels, bytes, shift);
+                tdss.distanceTransformCategorical(levels, max, bytes, shift);
             } else{
-                tdss.distanceTransformActual(max, levels, bytes, shift);
+                tdss.distanceTransformActual(levels, max, bytes, shift);
             }
         }
 
