@@ -1,3 +1,4 @@
+import deformablemesh.geometry.ConnectionRemesher;
 import deformablemesh.geometry.DeformableMesh3D;
 import deformablemesh.io.MeshReader;
 import deformablemesh.io.MeshWriter;
@@ -91,14 +92,31 @@ public class AccumulateZMeshes {
         for(int j = 0; j<names.size(); j++) {
             final int frame = j;
             working.clear();
+            System.out.println("starting: " + j + " :: " + names.get(j));
             List<Track> input = MeshReader.loadMeshes(
                     new File(names.get(j))
             ).stream().filter(
-                    loadedTrack -> loadedTrack.containsKey(0)
+                    loadedTrack -> {
+                        for(Integer f: loadedTrack.getTrack().keySet()){
+                            DeformableMesh3D mesh = loadedTrack.getMesh(f);
+                            loadedTrack.remove(mesh);
+                            try {
+                                ConnectionRemesher remesher = new ConnectionRemesher();
+                                remesher.setMinAndMaxLengths(0.01, 0.022);
+                                DeformableMesh3D remesh = remesher.remesh(mesh);
+                                loadedTrack.addMesh(0, remesh);
+                            }catch(Exception e){
+                                System.out.println("Broken mesh, skipping " + loadedTrack.getName());
+                                return false;
+                            }
+                        }
+                        return loadedTrack.containsKey(0);
+                    }
             ).collect(Collectors.toList());
 
             for(Track track: input){
                 Track modified = null;
+
                 for( Track can: lastFrame){
                     if( can.getName().equals(track.getName()) ){
                         modified = can;
