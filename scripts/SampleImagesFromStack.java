@@ -1,4 +1,3 @@
-import deformablemesh.MeshImageStack;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.ImageStack;
