@@ -169,7 +169,7 @@ public class SingleTrackPlotting {
         volumeChanges.setYLabel("(Vf - Vi)/Vi/dt ( um^3/Frame ) ");
         volumeChanges.setTitle("Volume vs Time: " + conditionName.replace(".txt", ""));
         volumeChanges.setYRange(-0.5, 0.5);
-        volumeChanges.setXRange(0, 30000);
+        //volumeChanges.setXRange(0, 30000);
         volumeChanges.show(false, "Relative Volume Changes " + conditionName);
 
         volumeChanges.saveSvg(new File(con + "-rel.svg"));

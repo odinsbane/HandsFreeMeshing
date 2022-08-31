@@ -64,7 +64,7 @@ public class AccumulteTimeChannelStacks {
                 List<ImageStack> stacks = new ArrayList<>();
                 List<ChannelTimeStack> channels = times.get(key);
                 channels.sort(Comparator.comparingInt(cst -> cst.c));
-
+                List<String> fileNames = new ArrayList<>();
                 for(ChannelTimeStack cstack: channels){
                     ImagePlus cplus = new ImagePlus(cstack.getAbsolutePath());
                     System.out.println( cstack.tile_no + "\t" + key  + "\t" + cplus.getNSlices() );
@@ -81,15 +81,17 @@ public class AccumulteTimeChannelStacks {
                             );
                     }
                     stacks.add(cplus.getImageStack());
+                    fileNames.add(cstack.path.getFileName().toString());
                 }
 
                 for(int z = 0; z < plus.getNSlices(); z++){
                     for(int i = 0; i<channels.size(); i++){
                         ImageStack stack = stacks.get(i);
+                        String label = fileNames.get(i);
                         if(stack.size() < z + 1 ){
-                            out.addSlice( stack.getProcessor( stack.size() ) );
+                            out.addSlice( label + " broken", stack.getProcessor( stack.size() ) );
                         } else{
-                            out.addSlice(stacks.get(i).getProcessor(z + 1));
+                            out.addSlice(label, stacks.get(i).getProcessor(z + 1));
                         }
                         
                     }
