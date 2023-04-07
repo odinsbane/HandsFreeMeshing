@@ -11,9 +11,8 @@ import deformablemesh.util.*;
 import ij.IJ;
 import ij.ImageJ;
 import ij.ImagePlus;
-import loci.formats.FormatException;
-import loci.plugins.BF;
-import loci.plugins.in.ImporterOptions;
+import ij.VirtualStack;
+import ij.plugin.FileInfoVirtualStack;
 
 import java.io.File;
 import java.io.IOException;
@@ -190,16 +189,10 @@ public class BatchDeformMeshes {
         System.out.println("done refining");
     }
 
-    public static ImagePlus getVirtualStack(Path location) throws IOException, FormatException {
+    public static ImagePlus getVirtualStack(Path location) throws IOException {
         String id = location.toAbsolutePath().toString();
-        ImporterOptions options = new ImporterOptions();
-        options.setVirtual(true);
-        options.setOpenAllSeries(true);
-        options.setId(id);
         long start = System.currentTimeMillis();
-        ImagePlus[] pluses = BF.openImagePlus(options);
-
-        return pluses[0];
+        return FileInfoVirtualStack.openVirtual(location.toString());
     }
 
     public static void main(String[] args) throws Exception{

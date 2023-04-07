@@ -260,6 +260,7 @@ public class CompareMosaicImages {
             List<Map<Integer, List<double[]>>> output = comparisons.get(comparisonName);
             double[] averages = new double[4];
             int n = 0;
+            int possible = 0;
             double over70 = 0.0;
 
             GraphPoints[] good = {GraphPoints.hollowCircles(), GraphPoints.hollowTriangles(), GraphPoints.hollowSquares()};
@@ -270,6 +271,7 @@ public class CompareMosaicImages {
                 double[] ji = new double[cells];
                 double[] cm = new double[cells];
                 int dex = 0;
+                int successful = 0;
                 for(Integer frame: movieValues.keySet()){
                     List<double[]> cellValues = movieValues.get(frame);
                     for(double[] cv: cellValues){
@@ -282,10 +284,13 @@ public class CompareMosaicImages {
                         ji[dex] = j;
                         cm[dex] = d;
                         dex++;
-                        averages[0] += j;
-                        averages[1] += d;
-                        averages[2] += j*j;
-                        averages[3] += d*d;
+                        if(d < 2.5) {
+                            averages[0] += j;
+                            averages[1] += d;
+                            averages[2] += j * j;
+                            averages[3] += d * d;
+                            successful++;
+                        }
                     }
 
                 }
@@ -297,10 +302,11 @@ public class CompareMosaicImages {
                 set.setLine(null);
                 set.setPoints(good[stackNo]);
                 stackNo = ++stackNo%good.length;
-                n += cells;
+                n += successful;
+                possible += cells;
             }
             System.out.println( over70 + "\t" + n + "\t" + (over70/n));
-
+            System.out.println( n + " included out of " + possible);
             averages[0] = averages[0]/n;
             averages[1] = averages[1]/n;
             averages[2] = Math.sqrt(averages[2]/n - averages[0]*averages[0]);
@@ -308,6 +314,8 @@ public class CompareMosaicImages {
             allAverages.add(averages);
             colorIndex = (colorIndex + 1)%colors.length;
             jiHistograms.put(comparisonName, histogram(jiTable));
+            System.out.println(Arrays.toString(averages));
+
         }
 
         for(int i = 0; i<allAverages.size(); i++){
@@ -438,6 +446,7 @@ public class CompareMosaicImages {
                 CompareMosaicImages cmi = new CompareMosaicImages(truth, guess);
                 cmi.prepareMapping();
                 //cellValues is a Frame, Data mapping. Data is one double[] per cell.
+
                 comparisonSet.add(cmi.cellValues);
                 totalVolume += cmi.totalVolume;
                 totalCells += cmi.totalCells;
