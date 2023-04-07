@@ -94,18 +94,25 @@ public class CompareMeshFiles {
                 continue;
             }
 
+			Mapping mapped = null;
             for(int j = 0; j<backwards.size(); j++){
                 Mapping o = backwards.get(j);
                 if(m.a == o.b && m.b != o.a){
                     //false positive. multiple predicted meshes map to 1 original.
                     falsePositives.add(m.b);
                     oneToOne = false;
-                }
+                } 
+                if(m.a == o.b && m.b == o.a){
+					mapped = o;
+				}
             }
 
             if(oneToOne){
-
-                truePositives.add(m.a);
+				if(mapped == null){
+					//pass Rare occurance where an original mesh maps to a predicted mesh.
+				} else{
+					truePositives.add(m.a);
+				}
             }
         }
 
