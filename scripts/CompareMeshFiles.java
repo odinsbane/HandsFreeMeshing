@@ -43,8 +43,8 @@ public class CompareMeshFiles {
 
     /**
      * For each mesh in the from, find the best matched mesh in to collection.
-     * @param from
-     * @param to
+     * @param from Ground Truth meshes
+     * @param to Prediction meshes
      * @return
      */
     void evaluatePrediction(List<DeformableMesh3D> from, List<DeformableMesh3D> to){
